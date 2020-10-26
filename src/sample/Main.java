@@ -13,7 +13,6 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.text.Text;
 import javafx.scene.control.TextField;
 import javafx.scene.control.Separator;
-import java.lang.reflect.Array;
 import java.math.*;
 import java.security.SecureRandom;
 import java.util.ArrayList;
@@ -21,8 +20,11 @@ import java.util.List;
 
 public class Main extends Application {
 
+    private final static BigInteger one = new BigInteger("1");
     public static final BigInteger INIT_NUMBER = new BigInteger("2");
+
     List<BigInteger> pq = new ArrayList<>();
+    BigInteger e, d;
 
     @Override
     public void start(Stage stage) throws Exception{
@@ -71,22 +73,6 @@ public class Main extends Application {
         gridPane.add(time, 0, 5);
         gridPane.add(separator, 0, 6);
 
-
-        eButton1.setOnAction(e -> {
-            //reset p & q
-            pq.clear();
-            Integer n = Integer.valueOf(textField1.getText());
-
-            // measure time
-            long startTime = System.currentTimeMillis();
-            pq = primeFactor(n);
-            long stopTime = System.currentTimeMillis();
-
-            time.setText("Amount of time busy finding p and q: " + (stopTime - startTime) + "ms");
-            pResult.setText("p is " + pq.get(0).toString());
-            qResult.setText("q is " + pq.get(1).toString());
-        });
-
         // 2
         gridPane.add(eButton2, 0, 7);
         gridPane.add(eResult, 0, 8);
@@ -104,20 +90,51 @@ public class Main extends Application {
         stage.setTitle("RSA Encyption & Decryption");
         stage.setScene(scene);
 
+
+        // Step 1 generate n
+        eButton1.setOnAction(e -> {
+            //reset p & q
+            pq.clear();
+            Integer n = Integer.valueOf(textField1.getText());
+
+            // measure time
+            long startTime = System.currentTimeMillis();
+            pq = calculatePQ(n);
+            long stopTime = System.currentTimeMillis();
+
+            time.setText("Amount of time busy finding p and q: " + (stopTime - startTime) + "ms");
+            pResult.setText("p is " + pq.get(0).toString());
+            qResult.setText("q is " + pq.get(1).toString());
+        });
+
+        // Step 2 generate e
+        eButton2.setOnAction(action -> {
+            BigInteger p = pq.get(0);
+            BigInteger q = pq.get(1);
+
+            e = generateE(p,q);
+
+            eResult.setText("e is " + e.toString());
+        });
+
         stage.show();
     }
 
-    public static void main(String[] args) { launch(args); }
-
-    List<BigInteger> primeFactor(int formInt) {
+    /**
+     * Calculate pq list.
+     *
+     * @param formInt the form int
+     * @return the list
+     */
+    List<BigInteger> calculatePQ(int formInt) {
         BigInteger n = new BigInteger(String.valueOf(formInt));
         BigInteger p = INIT_NUMBER;
 
         //For each prime p
         while(p.compareTo(n.divide(INIT_NUMBER)) <= 0){
+
             //If p is found
             if(n.mod(p).equals(BigInteger.ZERO)){
-
                 // q = n/p
                 BigInteger q = n.divide(p);
                 pq.add(p);
@@ -128,5 +145,31 @@ public class Main extends Application {
         }
         return pq;
     }
+
+    /**
+     * Generate e big integer.
+     *
+     * @param p the p
+     * @param q the q
+     * @return the big integer
+     */
+    BigInteger generateE(BigInteger p, BigInteger q) {
+        BigInteger phi = (p.subtract(one)).multiply(q.subtract(one));
+
+        SecureRandom rnd = new SecureRandom();
+        int length = phi.bitLength()-1;
+        BigInteger r = BigInteger.probablePrime(length,rnd);
+        while (! (phi.gcd(r)).equals(BigInteger.ONE) ) {
+            r = BigInteger.probablePrime(length,rnd);
+        }
+        return r;
+    }
+
+    /**
+     * The entry point of application.
+     *
+     * @param args the input arguments
+     */
+    public static void main(String[] args) { launch(args); }
 
 }
