@@ -13,18 +13,24 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.text.Text;
 import javafx.scene.control.TextField;
 import javafx.scene.control.Separator;
+
+import java.lang.reflect.Array;
 import java.math.*;
 import java.security.SecureRandom;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
+/**
+ * The type Main.
+ */
 public class Main extends Application {
 
     private final static BigInteger one = new BigInteger("1");
     public static final BigInteger INIT_NUMBER = new BigInteger("2");
 
     List<BigInteger> pq = new ArrayList<>();
-    BigInteger e, d;
+    BigInteger p, q, e, d, n;
 
     @Override
     public void start(Stage stage) throws Exception{
@@ -34,16 +40,16 @@ public class Main extends Application {
         Text title1 = new Text("Encryption");
         Text pResult = new Text();
         Text qResult = new Text();
-        Text eResult = new Text("e is ");
-        Text mResult = new Text("Message after encryption:");
+        Text eResult = new Text();
+        Text mResult = new Text();
         Text time = new Text();
         Text text2 = new Text("Password");
         title1.setStyle("-fx-font: 18 arial;");
 
         TextField textField1 = new TextField();
-        TextField textField2 = new TextField();
+        TextField message = new TextField();
         textField1.setPromptText("value of n");
-        textField2.setPromptText("value of m");
+        message.setPromptText("value of m");
 
         Button eButton1 = new Button("Step 1");
         Button eButton2 = new Button("Step 2");
@@ -79,7 +85,7 @@ public class Main extends Application {
         gridPane.add(separator2, 0, 9);
 
         // 3
-        gridPane.add(textField2, 0, 10);
+        gridPane.add(message, 0, 10);
         gridPane.add(eButton3, 0, 11);
         gridPane.add(mResult, 0, 12);
 
@@ -102,19 +108,33 @@ public class Main extends Application {
             pq = calculatePQ(n);
             long stopTime = System.currentTimeMillis();
 
+            p = pq.get(0);
+            q = pq.get(1);
+
             time.setText("Amount of time busy finding p and q: " + (stopTime - startTime) + "ms");
-            pResult.setText("p is " + pq.get(0).toString());
-            qResult.setText("q is " + pq.get(1).toString());
+            pResult.setText("p is " + p.toString());
+            qResult.setText("q is " + q.toString());
         });
 
         // Step 2 generate e
         eButton2.setOnAction(action -> {
-            BigInteger p = pq.get(0);
-            BigInteger q = pq.get(1);
+            generateE(p,q);
+            eResult.setText("q is " + e.toString());
+        });
 
-            e = generateE(p,q);
+        // Step 3 encrypt message
+        eButton3.setOnAction(action -> {
+            BigInteger[] encryptedMessage = encrypt(message.getText());
 
-            eResult.setText("e is " + e.toString());
+            for( int i = 0 ; i < encryptedMessage.length ; i++ )
+            {
+                if( i != encryptedMessage.length - 1 );
+            }
+
+            // Decryption
+            String decrypt = decrypt(encryptedMessage);
+
+            mResult.setText("Message after encryption is: \n" + Arrays.toString(encryptedMessage));
         });
 
         stage.show();
@@ -130,7 +150,7 @@ public class Main extends Application {
         BigInteger n = new BigInteger(String.valueOf(formInt));
         BigInteger p = INIT_NUMBER;
 
-        //For each prime p
+        //For each p
         while(p.compareTo(n.divide(INIT_NUMBER)) <= 0){
 
             //If p is found
@@ -153,16 +173,66 @@ public class Main extends Application {
      * @param q the q
      * @return the big integer
      */
-    BigInteger generateE(BigInteger p, BigInteger q) {
+    void generateE(BigInteger p, BigInteger q) {
         BigInteger phi = (p.subtract(one)).multiply(q.subtract(one));
+        n  = p.multiply(q);
 
         SecureRandom rnd = new SecureRandom();
-        int length = phi.bitLength()-1;
-        BigInteger r = BigInteger.probablePrime(length,rnd);
-        while (! (phi.gcd(r)).equals(BigInteger.ONE) ) {
-            r = BigInteger.probablePrime(length,rnd);
+
+        do e = BigInteger.probablePrime(phi.bitLength(),rnd);
+        while (e.compareTo(one) <= 0
+                || e.compareTo(phi) >= 0
+                || !e.gcd(phi).equals(one));
+
+        // private key
+        d = e.modInverse(phi);
+    }
+
+    /**
+     * Encrypt big integer.
+     *
+     * @param message the message
+     * @return the big integer
+     */
+    BigInteger[] encrypt(String message) {
+        int i ;
+        byte[] temp = new byte[1];
+        byte[] digits = message.getBytes();
+
+        BigInteger[] bigdigits = new BigInteger[digits.length] ;
+
+        for( i = 0 ; i < bigdigits.length ; i++ )
+        {
+            temp[0] = digits[i] ;
+            bigdigits[i] = new BigInteger( temp ) ;
         }
-        return r;
+
+        BigInteger[] encrypted = new BigInteger[bigdigits.length] ;
+
+        for( i = 0 ; i < bigdigits.length ; i++ )
+            encrypted[i] = bigdigits[i].modPow( e, n ) ;
+
+        return( encrypted ) ;
+    }
+
+    /**
+     * Decrypt big integer.
+     *
+     * @param encrypted the encrypted
+     * @return the big integer
+     */
+    String decrypt (BigInteger[] encrypted) {
+        int i ;
+        BigInteger[] decrypted = new BigInteger[encrypted.length] ;
+
+        for( i = 0 ; i < decrypted.length ; i++ )
+            decrypted[i] = encrypted[i].modPow( d, n ) ;
+
+        char[] charArray = new char[decrypted.length] ;
+
+        for( i = 0 ; i < charArray.length ; i++ )
+            charArray[i] = (char) ( decrypted[i].intValue() ) ;
+        return( new String( charArray ) ) ;
     }
 
     /**
