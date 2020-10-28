@@ -43,23 +43,41 @@ public class Main extends Application {
         Text eResult = new Text();
         Text mResult = new Text();
         Text time = new Text();
-        Text text2 = new Text("Password");
+
+        // Decryption
+        Text title2 = new Text("Decryption");
+        Text dResult = new Text();
+        Text mResult2 = new Text();
+
         title1.setStyle("-fx-font: 18 arial;");
+        title2.setStyle("-fx-font: 18 arial;");
 
         TextField textField1 = new TextField();
         TextField message = new TextField();
+
+        // Decryption
+        TextField nValue = new TextField();
+        TextField eValue = new TextField();
+        TextField cValue = new TextField();
+
         textField1.setPromptText("value of n");
         message.setPromptText("value of m");
+        nValue.setPromptText("value of n");
+        eValue.setPromptText("value of e");
+        cValue.setPromptText("value of c. Format: 0,0,0...6");
 
         Button eButton1 = new Button("Step 1");
         Button eButton2 = new Button("Step 2");
         Button eButton3 = new Button("Step 3");
-        Button button2 = new Button("Submit");
+        Button dButton1 = new Button("Step 1");
+        Button dButton2 = new Button("Step 2");
 
         Separator separator = new Separator(Orientation.HORIZONTAL);
         separator.setPadding(new Insets(15, 0, 15, 0));
         Separator separator2 = new Separator(Orientation.HORIZONTAL);
         separator2.setPadding(new Insets(15, 0, 15, 0));
+        Separator separator3 = new Separator(Orientation.HORIZONTAL);
+        separator3.setPadding(new Insets(15, 0, 15, 0));
 
         // Gridpane settings
         GridPane gridPane = new GridPane();
@@ -89,6 +107,18 @@ public class Main extends Application {
         gridPane.add(eButton3, 0, 11);
         gridPane.add(mResult, 0, 12);
 
+        // Decryption - 1
+        gridPane.add(title2, 1, 0);
+        gridPane.add(nValue, 1, 1);
+        gridPane.add(eValue, 1, 2);
+        gridPane.add(dButton1, 1, 3);
+        gridPane.add(dResult, 1, 4);
+        gridPane.add(separator3, 1, 5);
+
+        gridPane.add(cValue, 1, 6);
+        gridPane.add(dButton2, 1, 7);
+        gridPane.add(mResult2, 1, 8);
+
         //Creating a scene object
         Scene scene = new Scene(gridPane);
 
@@ -98,14 +128,14 @@ public class Main extends Application {
 
 
         // Step 1 generate n
-        eButton1.setOnAction(e -> {
+        eButton1.setOnAction(action -> {
             //reset p & q
             pq.clear();
-            Integer n = Integer.valueOf(textField1.getText());
+            Integer N = Integer.valueOf(textField1.getText());
 
             // measure time
             long startTime = System.currentTimeMillis();
-            pq = calculatePQ(n);
+            pq = calculatePQ(N);
             long stopTime = System.currentTimeMillis();
 
             p = pq.get(0);
@@ -119,7 +149,7 @@ public class Main extends Application {
         // Step 2 generate e
         eButton2.setOnAction(action -> {
             generateE(p,q);
-            eResult.setText("q is " + e.toString());
+            eResult.setText("e is " + e.toString());
         });
 
         // Step 3 encrypt message
@@ -131,10 +161,44 @@ public class Main extends Application {
                 if( i != encryptedMessage.length - 1 );
             }
 
-            // Decryption
+            // Decryption, testing purposes
             String decrypt = decrypt(encryptedMessage);
 
             mResult.setText("Message after encryption is: \n" + Arrays.toString(encryptedMessage));
+            System.out.println(decrypt);
+        });
+
+        // Decrypt Step 1, calculate d
+        dButton1.setOnAction(action -> {
+            //reset p & q
+            pq.clear();
+
+            Integer N = Integer.valueOf(nValue.getText());
+            Integer E = Integer.valueOf(eValue.getText());
+            e = BigInteger.valueOf(E);
+            n = BigInteger.valueOf(N);
+
+            pq = calculatePQ(N);
+            p = pq.get(0);
+            q = pq.get(1);
+            generateD(e);
+
+            dResult.setText("d is " + d.toString());
+        });
+
+        // Decrypt Step 2, decrypt c
+        dButton2.setOnAction(action -> {
+
+            System.out.println(Arrays.toString(cValue.getText().split(",")));
+
+            String[] strings = cValue.getText().split(",");
+            BigInteger[] encrypted = new BigInteger[strings.length];
+            for (int i = 0; i < strings.length; i++) {
+                encrypted[i] = new BigInteger(String.valueOf(strings[i]));
+            }
+
+            String decrypt = decrypt(encrypted);
+            dResult.setText("Message after decryption is: " + decrypt);
         });
 
         stage.show();
@@ -147,21 +211,21 @@ public class Main extends Application {
      * @return the list
      */
     List<BigInteger> calculatePQ(int formInt) {
-        BigInteger n = new BigInteger(String.valueOf(formInt));
-        BigInteger p = INIT_NUMBER;
+        BigInteger N = new BigInteger(String.valueOf(formInt));
+        BigInteger P = INIT_NUMBER;
 
         //For each p
-        while(p.compareTo(n.divide(INIT_NUMBER)) <= 0){
+        while(P.compareTo(N.divide(INIT_NUMBER)) <= 0){
 
             //If p is found
-            if(n.mod(p).equals(BigInteger.ZERO)){
+            if(N.mod(P).equals(BigInteger.ZERO)){
                 // q = n/p
-                BigInteger q = n.divide(p);
-                pq.add(p);
-                pq.add(q);
+                BigInteger Q = N.divide(P);
+                pq.add(P);
+                pq.add(Q);
             }
             //p = the next prime number
-            p = p.nextProbablePrime();
+            P = P.nextProbablePrime();
         }
         return pq;
     }
@@ -169,13 +233,13 @@ public class Main extends Application {
     /**
      * Generate e big integer.
      *
-     * @param p the p
-     * @param q the q
+     * @param P
+     * @param Q
      * @return the big integer
      */
-    void generateE(BigInteger p, BigInteger q) {
-        BigInteger phi = (p.subtract(one)).multiply(q.subtract(one));
-        n  = p.multiply(q);
+    void generateE(BigInteger P, BigInteger Q) {
+        BigInteger phi = (P.subtract(one)).multiply(Q.subtract(one));
+        n  = P.multiply(Q);
 
         SecureRandom rnd = new SecureRandom();
 
@@ -186,6 +250,11 @@ public class Main extends Application {
 
         // private key
         d = e.modInverse(phi);
+    }
+
+    void generateD(BigInteger E) {
+        BigInteger phi = (p.subtract(one)).multiply(q.subtract(one));
+        d = E.modInverse(phi);
     }
 
     /**
@@ -235,11 +304,6 @@ public class Main extends Application {
         return( new String( charArray ) ) ;
     }
 
-    /**
-     * The entry point of application.
-     *
-     * @param args the input arguments
-     */
     public static void main(String[] args) { launch(args); }
 
 }
