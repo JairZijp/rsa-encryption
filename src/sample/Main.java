@@ -154,8 +154,7 @@ public class Main extends Application {
         eButton3.setOnAction(action -> {
             BigInteger[] encryptedMessage = encrypt(message.getText());
 
-            for( int i = 0 ; i < encryptedMessage.length ; i++ )
-            {
+            for( int i = 0 ; i < encryptedMessage.length ; i++ ) {
                 if( i != encryptedMessage.length - 1 );
             }
 
@@ -176,20 +175,28 @@ public class Main extends Application {
             e = BigInteger.valueOf(E);
             n = BigInteger.valueOf(N);
 
+
             pq = calculatePQ(N);
             p = pq.get(0);
             q = pq.get(1);
-            generateD(e);
 
-            dResult.setText("d is " + d.toString());
+            // Euler totient, phi = (p-1)(q-1)
+            BigInteger phi = (p.subtract(ONE)).multiply(q.subtract(ONE));
+
+            // validate e
+            if(!e.gcd(phi).equals(ONE) || e.compareTo(ONE) <= 0 || e.compareTo(phi) >= 0) {
+                dResult.setText("e is not valid!");
+            } else {
+                generateD(e, phi);
+                dResult.setText("d is " + d.toString());
+            }
         });
 
         // Decrypt Step 2, decrypt c
         dButton2.setOnAction(action -> {
-
             System.out.println(Arrays.toString(cValue.getText().split(",")));
-
             String[] strings = cValue.getText().split(",");
+
             BigInteger[] encrypted = new BigInteger[strings.length];
             for (int i = 0; i < strings.length; i++) {
                 encrypted[i] = new BigInteger(String.valueOf(strings[i]).replaceAll("\\s+",""));
@@ -201,6 +208,8 @@ public class Main extends Application {
 
         stage.show();
     }
+
+    
 
     /**
      * Calculate pq list.
@@ -229,7 +238,7 @@ public class Main extends Application {
     }
 
     /**
-     * Generate e big integer.
+     * Generate e
      *
      * @param P
      * @param Q
@@ -243,6 +252,7 @@ public class Main extends Application {
 
         SecureRandom random = new SecureRandom();
 
+        // e = coprime with phi(n), & e < phi(n)
         do e = BigInteger.probablePrime(phi.bitLength(),random);
         while (e.compareTo(ONE) <= 0
                 || e.compareTo(phi) >= 0
@@ -252,12 +262,15 @@ public class Main extends Application {
         d = e.modInverse(phi);
     }
 
-    void generateD(BigInteger E) {
-        // Euler totient, phi = (p-1)(q-1)
-        BigInteger phi = (p.subtract(ONE)).multiply(q.subtract(ONE));
-
+    /**
+     * Generate d
+     *
+     * @param E    the e
+     * @param phiN the phi n
+     */
+    void generateD(BigInteger E, BigInteger phiN) {
         //private key, d = E^-1 mod phi
-        d = E.modInverse(phi);
+        d = E.modInverse(phiN);
     }
 
     /**
