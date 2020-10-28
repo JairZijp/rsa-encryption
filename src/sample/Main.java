@@ -13,8 +13,6 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.text.Text;
 import javafx.scene.control.TextField;
 import javafx.scene.control.Separator;
-
-import java.lang.reflect.Array;
 import java.math.*;
 import java.security.SecureRandom;
 import java.util.ArrayList;
@@ -26,7 +24,7 @@ import java.util.List;
  */
 public class Main extends Application {
 
-    private final static BigInteger one = new BigInteger("1");
+    private final static BigInteger ONE = new BigInteger("1");
     public static final BigInteger INIT_NUMBER = new BigInteger("2");
 
     List<BigInteger> pq = new ArrayList<>();
@@ -81,7 +79,7 @@ public class Main extends Application {
 
         // Gridpane settings
         GridPane gridPane = new GridPane();
-        gridPane.setMinSize(600, 400);
+        gridPane.setMinSize(800, 600);
 
         gridPane.setPadding(new Insets(10, 10, 10, 10));
         gridPane.setVgap(5);
@@ -194,11 +192,11 @@ public class Main extends Application {
             String[] strings = cValue.getText().split(",");
             BigInteger[] encrypted = new BigInteger[strings.length];
             for (int i = 0; i < strings.length; i++) {
-                encrypted[i] = new BigInteger(String.valueOf(strings[i]));
+                encrypted[i] = new BigInteger(String.valueOf(strings[i]).replaceAll("\\s+",""));
             }
 
             String decrypt = decrypt(encrypted);
-            dResult.setText("Message after decryption is: " + decrypt);
+            mResult2.setText("Message after decryption is: " + decrypt);
         });
 
         stage.show();
@@ -214,17 +212,17 @@ public class Main extends Application {
         BigInteger N = new BigInteger(String.valueOf(formInt));
         BigInteger P = INIT_NUMBER;
 
-        //For each p
+        //For each P
         while(P.compareTo(N.divide(INIT_NUMBER)) <= 0){
 
-            //If p is found
+            //If n mod p = 0, q = n/p
             if(N.mod(P).equals(BigInteger.ZERO)){
                 // q = n/p
                 BigInteger Q = N.divide(P);
                 pq.add(P);
                 pq.add(Q);
             }
-            //p = the next prime number
+            //P = the next prime number
             P = P.nextProbablePrime();
         }
         return pq;
@@ -238,22 +236,27 @@ public class Main extends Application {
      * @return the big integer
      */
     void generateE(BigInteger P, BigInteger Q) {
-        BigInteger phi = (P.subtract(one)).multiply(Q.subtract(one));
+        // Euler totient, phi = (p-1)(q-1)
+        BigInteger phi = (P.subtract(ONE)).multiply(Q.subtract(ONE));
+        // n = p*q
         n  = P.multiply(Q);
 
-        SecureRandom rnd = new SecureRandom();
+        SecureRandom random = new SecureRandom();
 
-        do e = BigInteger.probablePrime(phi.bitLength(),rnd);
-        while (e.compareTo(one) <= 0
+        do e = BigInteger.probablePrime(phi.bitLength(),random);
+        while (e.compareTo(ONE) <= 0
                 || e.compareTo(phi) >= 0
-                || !e.gcd(phi).equals(one));
+                || !e.gcd(phi).equals(ONE));
 
-        // private key
+        // for testing
         d = e.modInverse(phi);
     }
 
     void generateD(BigInteger E) {
-        BigInteger phi = (p.subtract(one)).multiply(q.subtract(one));
+        // Euler totient, phi = (p-1)(q-1)
+        BigInteger phi = (p.subtract(ONE)).multiply(q.subtract(ONE));
+
+        //private key, d = E^-1 mod phi
         d = E.modInverse(phi);
     }
 
@@ -266,20 +269,22 @@ public class Main extends Application {
     BigInteger[] encrypt(String message) {
         int i ;
         byte[] temp = new byte[1];
-        byte[] digits = message.getBytes();
 
-        BigInteger[] bigdigits = new BigInteger[digits.length] ;
+        // convert string to byte array
+        byte[] bytes = message.getBytes();
+        BigInteger[] bigInts = new BigInteger[bytes.length] ;
 
-        for( i = 0 ; i < bigdigits.length ; i++ )
-        {
-            temp[0] = digits[i] ;
-            bigdigits[i] = new BigInteger( temp ) ;
+        // add the bytes to the bigint array
+        for( i = 0 ; i < bigInts.length ; i++ ) {
+            temp[0] = bytes[i] ;
+            bigInts[i] = new BigInteger( temp ) ;
         }
+        BigInteger[] encrypted = new BigInteger[bigInts.length] ;
 
-        BigInteger[] encrypted = new BigInteger[bigdigits.length] ;
-
-        for( i = 0 ; i < bigdigits.length ; i++ )
-            encrypted[i] = bigdigits[i].modPow( e, n ) ;
+        // encrypt every bigInt with modPow(e,n)
+        // bigInts[i]^e % n
+        for( i = 0 ; i < bigInts.length ; i++ )
+            encrypted[i] = bigInts[i].modPow( e, n ) ;
 
         return( encrypted ) ;
     }
@@ -294,11 +299,13 @@ public class Main extends Application {
         int i ;
         BigInteger[] decrypted = new BigInteger[encrypted.length] ;
 
+        // fill decrypted array with encrypted int: encrypted[i]^e % n
         for( i = 0 ; i < decrypted.length ; i++ )
             decrypted[i] = encrypted[i].modPow( d, n ) ;
 
         char[] charArray = new char[decrypted.length] ;
 
+        // Add characters to char[] and return string
         for( i = 0 ; i < charArray.length ; i++ )
             charArray[i] = (char) ( decrypted[i].intValue() ) ;
         return( new String( charArray ) ) ;
