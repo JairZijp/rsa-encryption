@@ -4,15 +4,14 @@ import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.control.*;
 import javafx.stage.Stage;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.geometry.Orientation;
-import javafx.scene.control.Button;
 import javafx.scene.layout.GridPane;
 import javafx.scene.text.Text;
-import javafx.scene.control.TextField;
-import javafx.scene.control.Separator;
+
 import java.math.*;
 import java.security.SecureRandom;
 import java.util.ArrayList;
@@ -39,8 +38,10 @@ public class Main extends Application {
         Text pResult = new Text();
         Text qResult = new Text();
         Text eResult = new Text();
-        Text mResult = new Text();
+        TextArea mResult = new TextArea();
         Text time = new Text();
+
+        mResult.setPrefWidth(250);
 
         // Decryption
         Text title2 = new Text("Decryption");
@@ -76,6 +77,9 @@ public class Main extends Application {
         separator2.setPadding(new Insets(15, 0, 15, 0));
         Separator separator3 = new Separator(Orientation.HORIZONTAL);
         separator3.setPadding(new Insets(15, 0, 15, 0));
+
+        ScrollPane scrollPane = new ScrollPane();
+        scrollPane.setFitToHeight(true);
 
         // Gridpane settings
         GridPane gridPane = new GridPane();
@@ -209,7 +213,7 @@ public class Main extends Application {
         stage.show();
     }
 
-    
+
 
     /**
      * Calculate pq list.
